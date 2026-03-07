@@ -5,6 +5,8 @@ using Microsoft.Extensions.Hosting;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.ConfigureFunctionsWebApplication();
 
 builder.Services

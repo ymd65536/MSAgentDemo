@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MSAgentDemo.ServiceDefaults\MSAgentDemo.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Aspire.Azure.AI.OpenAI" Version="13.1.2-preview.1.26125.13" />
     <PackageReference Include="Azure.AI.OpenAI" Version="2.8.0-beta.1" />
