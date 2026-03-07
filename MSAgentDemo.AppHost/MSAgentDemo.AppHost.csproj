@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MSAgentDemo.Functions\MSAgentDemo.Functions.csproj" />
+    <ProjectReference Include="..\MSAgentDemo.AgentConsole\MSAgentDemo.AgentConsole.csproj" />
   </ItemGroup>
 
 </Project>

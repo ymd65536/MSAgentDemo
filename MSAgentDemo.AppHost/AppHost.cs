@@ -12,4 +12,9 @@ var functions = builder.AddAzureFunctionsProject<Projects.MSAgentDemo_Functions>
     .WithReference(openai)
     .WaitFor(openai);
 
+// --- Agent Console ---
+builder.AddProject<Projects.MSAgentDemo_AgentConsole>("agent-console")
+    .WithReference(openai)
+    .WaitFor(openai);
+
 builder.Build().Run();
