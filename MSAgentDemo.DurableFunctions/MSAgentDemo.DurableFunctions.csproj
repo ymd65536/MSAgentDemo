@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AzureFunctionsVersion>V4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- Grpc.Core NuGet には osx-arm64 ネイティブバイナリが含まれていないため
+       ソースからビルドしたライブラリを .azurefunctions に配置する -->
+  <Target Name="CopyGrpcNativeForOsxArm64" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <MakeDir Directories="$(OutputPath).azurefunctions/runtimes/osx-arm64/native" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/native/osx-arm64/libgrpc_csharp_ext.arm64.dylib"
+          DestinationFolder="$(OutputPath).azurefunctions/runtimes/osx-arm64/native"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/native/osx-arm64/libgrpc_csharp_ext.arm64.dylib"
+          DestinationFolder="$(OutputPath)runtimes/osx-arm64/native"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MSAgentDemo.ServiceDefaults\MSAgentDemo.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.50.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.3.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
+  </ItemGroup>
+
+</Project>
