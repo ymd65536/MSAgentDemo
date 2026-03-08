@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Text.Json;
 using Azure.AI.OpenAI;
 using Microsoft.Agents.AI;
@@ -6,6 +5,9 @@ using Microsoft.Agents.AI.OpenAI;
 using OpenAI.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// local.settings.json から設定を読み込む
+builder.Configuration.AddJsonFile("local.settings.json", optional: true, reloadOnChange: true);
 
 builder.AddServiceDefaults();
 
@@ -16,10 +18,7 @@ var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// セッション管理（インメモリ）
-var sessions = new ConcurrentDictionary<string, AgentSession>();
-
-// チャット API エンドポイント
+// チャット API エンドポイント（セッションなし — Learn サンプル準拠）
 app.MapPost("/api/chat", async (ChatRequest request, AzureOpenAIClient openAIClient) =>
 {
     var deploymentName = builder.Configuration["OPENAI_DEPLOYMENT_NAME"] ?? "chat";
@@ -30,16 +29,12 @@ app.MapPost("/api/chat", async (ChatRequest request, AzureOpenAIClient openAICli
             instructions: "あなたは親切な日本語アシスタントです。簡潔かつ丁寧に回答してください。",
             name: "ChatAgent");
 
-    // セッション管理: sessionId が指定されていればそのセッションを再利用
-    var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
-    var session = sessions.GetOrAdd(sessionId, _ => agent.CreateSessionAsync(sessionId).GetAwaiter().GetResult());
+    var response = await agent.RunAsync(request.Message);
 
-    var response = await agent.RunAsync(request.Message, session, options: null);
-
-    return Results.Ok(new ChatResponse(sessionId, response.Text));
+    return Results.Ok(new ChatResponse(response.Text));
 });
 
-// ストリーミング チャット API エンドポイント
+// ストリーミング チャット API エンドポイント（セッションなし）
 app.MapPost("/api/chat/stream", async (ChatRequest request, AzureOpenAIClient openAIClient, HttpContext httpContext) =>
 {
     var deploymentName = builder.Configuration["OPENAI_DEPLOYMENT_NAME"] ?? "chat";
@@ -50,15 +45,12 @@ app.MapPost("/api/chat/stream", async (ChatRequest request, AzureOpenAIClient op
             instructions: "あなたは親切な日本語アシスタントです。簡潔かつ丁寧に回答してください。",
             name: "ChatAgent");
 
-    var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
-    var session = sessions.GetOrAdd(sessionId, _ => agent.CreateSessionAsync(sessionId).GetAwaiter().GetResult());
-
     httpContext.Response.ContentType = "text/event-stream";
     httpContext.Response.Headers["Cache-Control"] = "no-cache";
 
-    await foreach (var update in agent.RunStreamingAsync(request.Message, session, options: null))
+    await foreach (var update in agent.RunStreamingAsync(request.Message))
     {
-        var data = JsonSerializer.Serialize(new { sessionId, content = update.Text });
+        var data = JsonSerializer.Serialize(new { content = update.Text });
         await httpContext.Response.WriteAsync($"data: {data}\n\n");
         await httpContext.Response.Body.FlushAsync();
     }
@@ -73,8 +65,8 @@ app.MapGet("/", () => Results.Content(ChatHtml.Page, "text/html"));
 app.Run();
 
 // --- レコード定義 ---
-record ChatRequest(string Message, string? SessionId = null);
-record ChatResponse(string SessionId, string Message);
+record ChatRequest(string Message);
+record ChatResponse(string Message);
 
 // --- 埋め込み HTML ---
 static class ChatHtml
@@ -110,7 +102,6 @@ static class ChatHtml
             <button id="send" onclick="sendMessage()">送信</button>
         </div>
         <script>
-            let sessionId = null;
             const chat = document.getElementById('chat');
             const input = document.getElementById('message');
             const btn = document.getElementById('send');
@@ -130,7 +121,7 @@ static class ChatHtml
                     const res = await fetch('/api/chat/stream', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: msg, sessionId })
+                        body: JSON.stringify({ message: msg })
                     });
 
                     const reader = res.body.getReader();
@@ -146,7 +137,6 @@ static class ChatHtml
                         for (const line of lines) {
                             if (line.startsWith('data: ') && line !== 'data: [DONE]') {
                                 const json = JSON.parse(line.slice(6));
-                                sessionId = json.sessionId;
                                 assistantDiv.textContent += json.content;
                                 chat.scrollTop = chat.scrollHeight;
                             }

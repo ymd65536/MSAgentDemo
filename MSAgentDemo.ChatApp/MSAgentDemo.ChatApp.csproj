@@ -17,4 +17,10 @@
     <ProjectReference Include="..\MSAgentDemo.ServiceDefaults\MSAgentDemo.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
